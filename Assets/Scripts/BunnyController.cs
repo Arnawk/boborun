@@ -1,25 +1,69 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class BunnyController : MonoBehaviour {
     private Rigidbody2D myRigidBody;
     public float bunnyJumpForce = 50f;
     private Animator myAnim;
+
+    private float bunnyHurtTime = -1;
+    private Collider2D myCollider;
+
+    public Text scoreText;
+    private float startTime;
+
 	// Use this for initialization
 	void Start () {
 
         myRigidBody = GetComponent<Rigidbody2D>();
         myAnim = GetComponent<Animator>();
-	}
-	
-	// Update is called once per frame
-	void Update () {
+        myCollider = GetComponent<Collider2D>();
 
-        if ((Input.GetButtonDown("Jump")) || (Input.GetMouseButtonDown(0)))
-        {
-            myRigidBody.AddForce(transform.up* bunnyJumpForce);
+        startTime = Time.time;
+	}
+
+    // Update is called once per frame
+    void Update()
+    {
+        if (bunnyHurtTime == -1)
+        { 
+            if ((Input.GetButtonDown("Jump")) || (Input.GetMouseButtonDown(0)))
+            {
+                myRigidBody.AddForce(transform.up * bunnyJumpForce);
+            }
+            myAnim.SetFloat("vVelocity", myRigidBody.velocity.y);
+            scoreText.text = (Time.time - startTime).ToString("0.0");
         }
-        myAnim.SetFloat("vVelocity",myRigidBody.velocity.y);
+        else
+        {
+            if(Time.time>bunnyHurtTime+2)
+            {
+                Application.LoadLevel(Application.loadedLevel);
+            }
+        }
+
+    }
+    private void OnCollisionEnter2D(Collision2D collision)
+    {
+        if (collision.collider.gameObject.layer == LayerMask.NameToLayer("Enemy"))
+        {
+            foreach (PrefabSpawner spawner in FindObjectsOfType<PrefabSpawner>())
+            {
+                spawner.enabled = false;
+            }
+            foreach (MoveLeft moveLefter in FindObjectsOfType<MoveLeft>())
+            {
+                moveLefter.enabled = false;
+            }
+            bunnyHurtTime = Time.time;
+            myAnim.SetBool("bunnyHurt",true);
+
+            myRigidBody.velocity = Vector2.zero;
+            myRigidBody.AddForce(transform.up*bunnyJumpForce);
+            myCollider.enabled = false;
+        }
+
     }
 }
