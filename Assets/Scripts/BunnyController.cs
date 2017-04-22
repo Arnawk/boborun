@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.SceneManagement;
 
 public class BunnyController : MonoBehaviour {
     private Rigidbody2D myRigidBody;
@@ -14,7 +15,13 @@ public class BunnyController : MonoBehaviour {
     public Text scoreText;
     private float startTime;
 
-	// Use this for initialization
+    private int jumpsLeft = 2;
+    // Use this for initialization
+
+
+    public AudioSource jumpSfx, deathSfx;
+
+
 	void Start () {
 
         myRigidBody = GetComponent<Rigidbody2D>();
@@ -27,11 +34,30 @@ public class BunnyController : MonoBehaviour {
     // Update is called once per frame
     void Update()
     {
+        if(Input.GetKeyDown(KeyCode.Escape))
+        {
+            SceneManager.LoadScene("Title");
+      //      Application.LoadLevel("Title");
+
+        }
         if (bunnyHurtTime == -1)
         { 
-            if ((Input.GetButtonDown("Jump")) || (Input.GetMouseButtonDown(0)))
+            if (((Input.GetButtonDown("Jump")) || (Input.GetMouseButtonDown(0))) && jumpsLeft>0)
             {
-                myRigidBody.AddForce(transform.up * bunnyJumpForce);
+                if(myRigidBody.velocity.y<0)
+                {
+                    myRigidBody.velocity = Vector2.zero;
+                }
+                if (jumpsLeft == 1)
+                {
+                    myRigidBody.AddForce(transform.up * bunnyJumpForce*0.75f);
+                }
+                else
+                {
+                    myRigidBody.AddForce(transform.up * bunnyJumpForce);
+                }
+                jumpsLeft--;
+                jumpSfx.Play();
             }
             myAnim.SetFloat("vVelocity", myRigidBody.velocity.y);
             scoreText.text = (Time.time - startTime).ToString("0.0");
@@ -40,7 +66,8 @@ public class BunnyController : MonoBehaviour {
         {
             if(Time.time>bunnyHurtTime+2)
             {
-                Application.LoadLevel(Application.loadedLevel);
+                SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+               // Application.LoadLevel(Application.loadedLevel);
             }
         }
 
@@ -58,12 +85,28 @@ public class BunnyController : MonoBehaviour {
                 moveLefter.enabled = false;
             }
             bunnyHurtTime = Time.time;
-            myAnim.SetBool("bunnyHurt",true);
+            myAnim.SetBool("bunnyHurt", true);
+
+            deathSfx.Play();
 
             myRigidBody.velocity = Vector2.zero;
-            myRigidBody.AddForce(transform.up*bunnyJumpForce);
+            myRigidBody.AddForce(transform.up * bunnyJumpForce);
             myCollider.enabled = false;
+
+            float currentBestScore = PlayerPrefs.GetFloat("BestScore",0);
+            float currentScore = Time.time - startTime;
+
+            if(currentScore>currentBestScore)
+            {
+                PlayerPrefs.SetFloat("BestScore", currentScore);
+
+            }
+
+        }
+        else if (collision.collider.gameObject.layer == LayerMask.NameToLayer("Ground"))
+        {
+            jumpsLeft = 2;
         }
 
-    }
+        }
 }
